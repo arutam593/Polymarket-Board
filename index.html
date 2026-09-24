@@ -65,20 +65,11 @@
   .chip { font-size: 11px; border: 1px solid var(--border-strong); padding: 6px 12px; cursor: pointer; color: var(--text-dim); background: transparent; }
   .chip.active { border-color: var(--amber); color: var(--amber); }
 
-  .card { border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 12px; }
-  .card .cardtop { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-  .card .title { font-size: 14.5px; }
-  .card .meta { font-size: 10.5px; color: var(--text-dim); }
-  .card .tags { margin-top: 4px; }
-  .card .tags span { font-size: 9.5px; color: var(--text-dim); border: 1px solid var(--border); padding: 2px 6px; margin-right: 5px; }
-
-  .market { margin-top: 10px; }
-  .market .q { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
-  .outcome { display: grid; grid-template-columns: 100px 1fr 50px; gap: 10px; align-items: center; margin-bottom: 5px; }
-  .outcome .name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .outcome .bar { height: 14px; background: var(--bar-track); position: relative; }
-  .outcome .bar .fill { height: 100%; background: var(--field); }
-  .outcome .pct { font-size: 12px; text-align: right; }
+  .card { border: 1px solid var(--border); padding: 14px 18px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .card .title { font-size: 14px; }
+  .card .pick { text-align: right; }
+  .card .pick .name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 15px; }
+  .card .pick .pct { font-size: 12px; color: var(--field-bright); }
 
   .empty { text-align: center; color: var(--text-dim); font-size: 12.5px; padding: 30px 0; border: 1px dashed var(--border-strong); }
 
@@ -173,32 +164,27 @@
     }
 
     list.innerHTML = filtered.map(ev => {
-      const tags = getTagLabels(ev).slice(0, 4);
       const markets = Array.isArray(ev.markets) ? ev.markets : [];
-      const marketsHtml = markets.map(m => {
-        const outcomes = safeParseArr(m.outcomes);
-        const prices = safeParseArr(m.outcomePrices).map(p => parseFloat(p));
-        if (outcomes.length === 0) return '';
-        const rows = outcomes.map((name, i) => {
-          const price = prices[i];
-          const pct = isFinite(price) ? Math.round(price * 1000) / 10 : null;
-          return `<div class="outcome"><div class="name">${escapeHtml(name)}</div><div class="bar"><div class="fill" style="width:${pct !== null ? pct : 0}%"></div></div><div class="pct">${pct !== null ? pct + '%' : '—'}</div></div>`;
-        }).join('');
-        return `<div class="market"><div class="q">${escapeHtml(m.question || m.groupItemTitle || '')}</div>${rows}</div>`;
-      }).join('');
+      const market = markets[0];
+      if (!market) return '';
 
-      const endLabel = formatDate(ev.endDate || ev.end_date);
-      const volume = ev.volume ? '$' + Number(ev.volume).toLocaleString(undefined, {maximumFractionDigits: 0}) : null;
+      const outcomes = safeParseArr(market.outcomes);
+      const prices = safeParseArr(market.outcomePrices).map(p => parseFloat(p));
+      if (outcomes.length === 0) return '';
+
+      let bestIdx = 0;
+      for (let i = 1; i < prices.length; i++) {
+        if (prices[i] > prices[bestIdx]) bestIdx = i;
+      }
+      const pickName = outcomes[bestIdx];
+      const pickPct = isFinite(prices[bestIdx]) ? Math.round(prices[bestIdx] * 1000) / 10 : null;
 
       return `<div class="card">
-          <div class="cardtop">
-            <div>
-              <div class="title">${escapeHtml(ev.title || ev.slug || 'Untitled event')}</div>
-              <div class="tags">${tags.map(t => '<span>' + escapeHtml(t) + '</span>').join('')}</div>
-            </div>
-            <div class="meta">${endLabel ? 'resolves ' + endLabel : ''}${volume ? ' · vol ' + volume : ''}</div>
+          <div class="title">${escapeHtml(ev.title || ev.slug || 'Untitled event')}</div>
+          <div class="pick">
+            <div class="name">${escapeHtml(pickName)}</div>
+            <div class="pct">${pickPct !== null ? pickPct + '% implied' : 'no price data'}</div>
           </div>
-          ${marketsHtml || '<div class="market"><div class="q">no market price data in this event</div></div>'}
         </div>`;
     }).join('');
   }
