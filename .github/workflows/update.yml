@@ -31,4 +31,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add games.json
           git diff --quiet --cached || git commit -m "Update games.json"
+          git pull --rebase origin main
           git push
