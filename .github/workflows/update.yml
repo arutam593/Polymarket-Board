@@ -6,6 +6,10 @@ on:
     - cron: "0 12 * * *"
   workflow_dispatch: {}   # lets you also trigger it manually from the Actions tab
 
+concurrency:
+  group: update-games-json
+  cancel-in-progress: false   # let a running job finish rather than fighting over the push
+
 permissions:
   contents: write
 
